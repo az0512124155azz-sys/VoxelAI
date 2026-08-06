@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoxelAI Studio — יצירת מודלים תלת-ממדיים בינה מלאכותית</title>
+  <meta name="description" content="VoxelAI Studio — צור, ערוך ושנה מודלים תלת-ממדיים בעזרת AI מתמונה, טקסט או מודל קיים. ייצוא לכל פורמטי התלת-ממד כולל הכנה מלאה להדפסת 3D." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+  <!-- Custom title bar -->
+  <div id="titlebar">
+    <div id="titlebar-drag">
+      <div id="app-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#grad1)" opacity="0.9"/>
+          <path d="M2 17l10 5 10-5" stroke="url(#grad1)" stroke-width="1.5" fill="none"/>
+          <path d="M2 12l10 5 10-5" stroke="url(#grad1)" stroke-width="1.5" fill="none" opacity="0.6"/>
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#7c3aed"/>
+              <stop offset="100%" style="stop-color:#06b6d4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>VoxelAI Studio</span>
+      </div>
+    </div>
+    <div id="titlebar-controls">
+      <button id="btn-minimize" class="win-btn" title="מזער" onclick="window.voxelAPI?.minimize()">
+        <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+      </button>
+      <button id="btn-maximize" class="win-btn" title="הגדל/הקטן" onclick="window.voxelAPI?.maximize()">
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect width="9" height="9" x="0.5" y="0.5" fill="none" stroke="currentColor"/></svg>
+      </button>
+      <button id="btn-close" class="win-btn close-btn" title="סגור" onclick="window.voxelAPI?.close()">
+        <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div id="app-layout">
+    <!-- Sidebar nav -->
+    <nav id="sidebar">
+      <div id="nav-tabs">
+        <button class="nav-tab active" data-tab="create" id="nav-create">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+          </svg>
+          <span>יצירה</span>
+        </button>
+        <button class="nav-tab" data-tab="edit" id="nav-edit">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke-linecap="round"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round"/>
+          </svg>
+          <span>עריכה</span>
+        </button>
+        <button class="nav-tab" data-tab="blend" id="nav-blend">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/>
+          </svg>
+          <span>מיזוג</span>
+        </button>
+        <button class="nav-tab" data-tab="avatar" id="nav-avatar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span>קריקטורה</span>
+        </button>
+        <button class="nav-tab" data-tab="print" id="nav-print">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polyline points="6 9 6 2 18 2 18 9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke-linecap="round"/>
+            <rect x="6" y="14" width="12" height="8" rx="1" stroke-linecap="round"/>
+          </svg>
+          <span>הדפסה</span>
+        </button>
+        <button class="nav-tab" data-tab="export" id="nav-export">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-linecap="round"/>
+            <polyline points="7 10 12 15 17 10" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="15" x2="12" y2="3" stroke-linecap="round"/>
+          </svg>
+          <span>ייצוא</span>
+        </button>
+      </div>
+
+      <!-- Sidebar status -->
+      <div id="ai-status">
+        <div id="ai-indicator" class="offline"></div>
+        <span id="ai-status-text">בדיקת AI מקומי...</span>
+      </div>
+    </nav>
+
+    <!-- Panel: controls on left -->
+    <div id="control-panel">
+      <!-- ── CREATE TAB ── -->
+      <div class="tab-panel active" id="tab-create">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+          יצירת מודל 3D
+        </h2>
+
+        <div class="section-label">בחר מצב יצירה</div>
+        <div class="mode-grid" id="create-mode-grid">
+          <button class="mode-btn active" data-mode="single-image" id="mode-single">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 6 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>תמונה אחת</span>
+          </button>
+          <button class="mode-btn" data-mode="multi-image" id="mode-multi">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="14" height="14" rx="2"/><path d="M22 4H10v14" stroke-linecap="round"/></svg>
+            <span>מרובה תמונות</span>
+          </button>
+          <button class="mode-btn" data-mode="image-text" id="mode-imgtext">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="10" height="10" rx="1"/><path d="M15 7h6M15 12h6M3 17h18" stroke-linecap="round"/></svg>
+            <span>תמונה + טקסט</span>
+          </button>
+          <button class="mode-btn" data-mode="multi-image-text" id="mode-multitext">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="12" height="12" rx="1"/><path d="M16 6h6M16 11h6M2 20h20" stroke-linecap="round"/></svg>
+            <span>מרובות + טקסט</span>
+          </button>
+          <button class="mode-btn" data-mode="text-only" id="mode-text">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 10h16M4 14h10" stroke-linecap="round"/></svg>
+            <span>טקסט בלבד</span>
+          </button>
+        </div>
+
+        <!-- Image upload area (shown when mode includes image) -->
+        <div id="image-upload-area" class="upload-zone" data-active="true">
+          <input type="file" id="input-images" accept="image/*" multiple hidden />
+          <div class="upload-inner" onclick="document.getElementById('input-images').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>גרור תמונות לכאן או לחץ להעלאה</p>
+            <small>PNG, JPG, WEBP, HEIC — עד 20 תמונות</small>
+          </div>
+          <div id="image-preview-strip"></div>
+        </div>
+
+        <!-- Prompt area -->
+        <div class="field-group" id="prompt-area">
+          <label class="field-label" for="create-prompt">תיאור טקסטואלי</label>
+          <textarea id="create-prompt" class="styled-textarea" placeholder="תאר את המודל שברצונך ליצור... למשל: 'ספינת חלל עתידנית עם כנפיים מתקפלות'" rows="3"></textarea>
+        </div>
+
+        <!-- Generation settings -->
+        <div class="settings-grid">
+          <div class="field-group">
+            <label class="field-label" for="poly-count">רזולוציית פוליגונים</label>
+            <select id="poly-count" class="styled-select">
+              <option value="low">נמוכה — מהירה</option>
+              <option value="medium" selected>בינונית</option>
+              <option value="high">גבוהה — מפורטת</option>
+              <option value="ultra">Ultra HD</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="tex-res">רזולוציית טקסטורה</label>
+            <select id="tex-res" class="styled-select">
+              <option value="512">512×512</option>
+              <option value="1024" selected>1024×1024</option>
+              <option value="2048">2048×2048</option>
+              <option value="4096">4096×4096</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="guidance-scale">עוצמת הנחייה AI</label>
+          <div class="slider-row">
+            <input type="range" id="guidance-scale" min="1" max="20" value="7.5" step="0.5" class="styled-slider" />
+            <span id="guidance-val" class="slider-value">7.5</span>
+          </div>
+        </div>
+
+        <button class="btn-primary btn-generate" id="btn-generate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          צור מודל 3D
+        </button>
+      </div>
+
+      <!-- ── EDIT TAB ── -->
+      <div class="tab-panel" id="tab-edit">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          עריכת מודל קיים
+        </h2>
+
+        <div class="upload-zone" id="model-upload-zone">
+          <input type="file" id="input-model-edit" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.dae,.3mf,.off,.wrl" hidden />
+          <div class="upload-inner" onclick="document.getElementById('input-model-edit').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>העלה מודל תלת-ממדי לעריכה</p>
+            <small>GLB, GLTF, OBJ, STL, PLY, FBX, DAE, 3MF, OFF, WRL</small>
+          </div>
+          <div id="edit-model-name" class="loaded-file-name"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="edit-prompt">הנחיית עריכה AI</label>
+          <textarea id="edit-prompt" class="styled-textarea" placeholder="תאר את השינויים שברצונך לבצע... למשל: 'הוסף כנפיים לדרקון', 'שנה את המרקם לעץ כהה', 'הגדל את הראש ב-20%'" rows="4"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">סוג שינוי</label>
+          <div class="tag-group">
+            <button class="tag active" data-edit-type="geometry">גיאומטריה</button>
+            <button class="tag" data-edit-type="texture">טקסטורה</button>
+            <button class="tag" data-edit-type="style">סגנון</button>
+            <button class="tag" data-edit-type="deform">עיוות</button>
+            <button class="tag" data-edit-type="color">צבע</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="edit-strength">עוצמת שינוי</label>
+          <div class="slider-row">
+            <input type="range" id="edit-strength" min="1" max="100" value="50" class="styled-slider" />
+            <span id="edit-strength-val" class="slider-value">50%</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-apply-edit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          החל שינויים AI
+        </button>
+      </div>
+
+      <!-- ── BLEND TAB ── -->
+      <div class="tab-panel" id="tab-blend">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+          מיזוג מודלים
+        </h2>
+
+        <div class="blend-upload-pair">
+          <div class="upload-zone mini" id="blend-zone-a">
+            <input type="file" id="input-blend-a" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.dae" hidden />
+            <div class="upload-inner" onclick="document.getElementById('input-blend-a').click()">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>מודל א'</p>
+              <small>העלה קובץ 3D</small>
+            </div>
+            <div class="loaded-file-name" id="blend-a-name"></div>
+          </div>
+
+          <div class="blend-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+
+          <div class="upload-zone mini" id="blend-zone-b">
+            <input type="file" id="input-blend-b" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.dae" hidden />
+            <div class="upload-inner" onclick="document.getElementById('input-blend-b').click()">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>מודל ב'</p>
+              <small>העלה קובץ 3D</small>
+            </div>
+            <div class="loaded-file-name" id="blend-b-name"></div>
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-top:1rem">
+          <label class="field-label" for="blend-ratio">יחס מיזוג (א ← ב)</label>
+          <div class="slider-row">
+            <input type="range" id="blend-ratio" min="0" max="100" value="50" class="styled-slider" />
+            <span id="blend-ratio-val" class="slider-value">50/50</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="blend-prompt">הנחיית מיזוג (אופציונלי)</label>
+          <textarea id="blend-prompt" class="styled-textarea" placeholder="למשל: 'חיבר את הגוף של מודל א עם הכנפיים של מודל ב, סגנון Sci-Fi'" rows="3"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">מה למזג?</label>
+          <div class="tag-group">
+            <button class="tag active" data-blend="geometry">גיאומטריה</button>
+            <button class="tag active" data-blend="texture">טקסטורה</button>
+            <button class="tag" data-blend="style">סגנון</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-blend">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+          מזג מודלים
+        </button>
+      </div>
+
+      <!-- ── AVATAR TAB ── -->
+      <div class="tab-panel" id="tab-avatar">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          מחולל קריקטורות ואווטאר
+        </h2>
+
+        <div class="upload-zone" id="avatar-upload-zone">
+          <input type="file" id="input-avatar" accept="image/*" hidden />
+          <div class="upload-inner" onclick="document.getElementById('input-avatar').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <p>העלה תמונת פנים</p>
+            <small>עצמך, חיית המחמד, דמות כלשהי</small>
+          </div>
+          <div id="avatar-preview" class="avatar-thumb-wrap"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">סגנון קריקטורה</label>
+          <div class="style-grid" id="avatar-style-grid">
+            <button class="style-btn active" data-style="pixar" id="style-pixar">
+              <div class="style-icon">🎬</div>
+              <span>Pixar / Disney</span>
+            </button>
+            <button class="style-btn" data-style="anime" id="style-anime">
+              <div class="style-icon">⛩️</div>
+              <span>אנימה</span>
+            </button>
+            <button class="style-btn" data-style="lowpoly" id="style-lowpoly">
+              <div class="style-icon">💎</div>
+              <span>Low Poly</span>
+            </button>
+            <button class="style-btn" data-style="clay" id="style-clay">
+              <div class="style-icon">🏺</div>
+              <span>Claymation</span>
+            </button>
+            <button class="style-btn" data-style="cyberpunk" id="style-cyberpunk">
+              <div class="style-icon">🤖</div>
+              <span>Cyberpunk</span>
+            </button>
+            <button class="style-btn" data-style="chibi" id="style-chibi">
+              <div class="style-icon">🌸</div>
+              <span>Chibi</span>
+            </button>
+            <button class="style-btn" data-style="realistic" id="style-realistic">
+              <div class="style-icon">📸</div>
+              <span>ריאליסטי</span>
+            </button>
+            <button class="style-btn" data-style="toon" id="style-toon">
+              <div class="style-icon">🖍️</div>
+              <span>Toon Shader</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">סוג נבדק</label>
+          <div class="tag-group">
+            <button class="tag active" data-subject="human">בן אדם</button>
+            <button class="tag" data-subject="pet">חיית מחמד</button>
+            <button class="tag" data-subject="creature">יצור</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="avatar-extras">התאמות נוספות</label>
+          <textarea id="avatar-extras" class="styled-textarea" placeholder="למשל: 'הוסף כובע קאובוי', 'עיניים גדולות', 'עם גיטרה ביד'" rows="2"></textarea>
+        </div>
+
+        <button class="btn-primary" id="btn-avatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          צור קריקטורה 3D
+        </button>
+      </div>
+
+      <!-- ── PRINT TAB ── -->
+      <div class="tab-panel" id="tab-print">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+          הכנה להדפסת 3D
+        </h2>
+
+        <div class="info-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          המערכת תבדוק אם המודל נכנס במשטח ההדפסה. אם כן — אין חיתוך!
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">גודל משטח הדפסה</label>
+          <div class="bed-size-grid" id="bed-size-grid">
+            <button class="bed-btn" data-size="150,150,150" id="bed-small">
+              <span class="bed-label">קטן</span>
+              <span class="bed-dims">150×150×150</span>
+            </button>
+            <button class="bed-btn" data-size="220,220,250" id="bed-medium">
+              <span class="bed-label">בינוני</span>
+              <span class="bed-dims">220×220×250</span>
+            </button>
+            <button class="bed-btn active" data-size="256,256,256" id="bed-256">
+              <span class="bed-label">256</span>
+              <span class="bed-dims">256×256×256</span>
+            </button>
+            <button class="bed-btn" data-size="300,300,300" id="bed-large">
+              <span class="bed-label">גדול</span>
+              <span class="bed-dims">300×300×300</span>
+            </button>
+            <button class="bed-btn" data-size="450,450,450" id="bed-xl">
+              <span class="bed-label">XL</span>
+              <span class="bed-dims">450×450×450</span>
+            </button>
+            <button class="bed-btn" data-size="custom" id="bed-custom">
+              <span class="bed-label">⚙️ מותאם</span>
+              <span class="bed-dims">X×Y×Z</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom dimensions (shown when custom selected) -->
+        <div id="custom-dims-row" class="dims-row hidden">
+          <div class="field-group">
+            <label class="field-label">X (mm)</label>
+            <input type="number" id="dim-x" class="styled-input" value="200" min="10" max="2000" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Y (mm)</label>
+            <input type="number" id="dim-y" class="styled-input" value="200" min="10" max="2000" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Z (mm)</label>
+            <input type="number" id="dim-z" class="styled-input" value="200" min="10" max="2000" />
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label class="toggle-label" for="toggle-pins">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/></svg>
+            הוסף פינים לחיבור (ללא דבק)
+          </label>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="toggle-pins" class="toggle-input" checked />
+            <label for="toggle-pins" class="toggle-switch"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label class="toggle-label" for="toggle-minimize-cuts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v6l4 2-4 2v6l16-8z"/></svg>
+            מינימום חיתוכים
+          </label>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="toggle-minimize-cuts" class="toggle-input" checked />
+            <label for="toggle-minimize-cuts" class="toggle-switch"></label>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-print-analyze">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+          נתח וחלק להדפסה
+        </button>
+
+        <!-- Slicer recommendations output -->
+        <div id="slicer-recs" class="slicer-panel hidden">
+          <h3 class="slicer-title">📋 המלצות לסלייסר</h3>
+          <div id="slicer-content"></div>
+        </div>
+      </div>
+
+      <!-- ── EXPORT TAB ── -->
+      <div class="tab-panel" id="tab-export">
+        <h2 class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ייצוא מודל
+        </h2>
+
+        <div class="section-label">פורמטים להדפסה</div>
+        <div class="export-group" id="print-formats">
+          <button class="export-btn" data-format="stl-binary" id="exp-stl-bin">
+            <span class="exp-ext">.STL</span><span class="exp-name">Binary (הדפסה)</span>
+          </button>
+          <button class="export-btn" data-format="stl-ascii" id="exp-stl-ascii">
+            <span class="exp-ext">.STL</span><span class="exp-name">ASCII</span>
+          </button>
+          <button class="export-btn" data-format="3mf" id="exp-3mf">
+            <span class="exp-ext">.3MF</span><span class="exp-name">3D Manufacturing</span>
+          </button>
+          <button class="export-btn" data-format="obj-print" id="exp-obj-p">
+            <span class="exp-ext">.OBJ</span><span class="exp-name">Wavefront</span>
+          </button>
+          <button class="export-btn" data-format="ply" id="exp-ply">
+            <span class="exp-ext">.PLY</span><span class="exp-name">Polygon File</span>
+          </button>
+        </div>
+
+        <div class="section-label" style="margin-top:1rem">פורמטים לאנימציה ומשחקים</div>
+        <div class="export-group" id="game-formats">
+          <button class="export-btn" data-format="glb" id="exp-glb">
+            <span class="exp-ext">.GLB</span><span class="exp-name">Binary glTF</span>
+          </button>
+          <button class="export-btn" data-format="gltf" id="exp-gltf">
+            <span class="exp-ext">.GLTF</span><span class="exp-name">glTF + Assets</span>
+          </button>
+          <button class="export-btn" data-format="fbx" id="exp-fbx">
+            <span class="exp-ext">.FBX</span><span class="exp-name">Autodesk</span>
+          </button>
+          <button class="export-btn" data-format="dae" id="exp-dae">
+            <span class="exp-ext">.DAE</span><span class="exp-name">Collada</span>
+          </button>
+          <button class="export-btn" data-format="usdz" id="exp-usdz">
+            <span class="exp-ext">.USDZ</span><span class="exp-name">Apple AR</span>
+          </button>
+        </div>
+
+        <div class="section-label" style="margin-top:1rem">פורמטים CAD וענן נקודות</div>
+        <div class="export-group" id="cad-formats">
+          <button class="export-btn" data-format="off" id="exp-off">
+            <span class="exp-ext">.OFF</span><span class="exp-name">Object File</span>
+          </button>
+          <button class="export-btn" data-format="wrl" id="exp-wrl">
+            <span class="exp-ext">.WRL</span><span class="exp-name">VRML</span>
+          </button>
+          <button class="export-btn" data-format="dxf" id="exp-dxf">
+            <span class="exp-ext">.DXF</span><span class="exp-name">AutoCAD</span>
+          </button>
+          <button class="export-btn" data-format="xyz" id="exp-xyz">
+            <span class="exp-ext">.XYZ</span><span class="exp-name">Point Cloud</span>
+          </button>
+          <button class="export-btn" data-format="step" id="exp-step">
+            <span class="exp-ext">.STEP</span><span class="exp-name">ISO Standard</span>
+          </button>
+        </div>
+
+        <div class="field-group" style="margin-top:1rem">
+          <label class="field-label" for="export-scale">קנה מידה ייצוא</label>
+          <select id="export-scale" class="styled-select">
+            <option value="1">×1 — יחידות מקוריות</option>
+            <option value="0.001">×0.001 — mm → m</option>
+            <option value="1000">×1000 — m → mm</option>
+            <option value="25.4">×25.4 — inches → mm</option>
+            <option value="custom">מותאם אישית...</option>
+          </select>
+        </div>
+
+        <button class="btn-secondary" id="btn-screenshot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          צלם תמונת מסך
+        </button>
+      </div>
+    </div>
+
+    <!-- Main 3D viewport -->
+    <div id="viewport-area">
+      <div id="viewport-toolbar">
+        <div class="vp-tools">
+          <button class="vp-btn active" id="vp-orbit" title="סיבוב מצלמה">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 3v9h9"/></svg>
+          </button>
+          <button class="vp-btn" id="vp-wireframe" title="Wireframe">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 20 2 20"/></svg>
+          </button>
+          <button class="vp-btn" id="vp-reset-cam" title="איפוס מצלמה">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          </button>
+          <button class="vp-btn" id="vp-grid" title="הצג גריד">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button class="vp-btn" id="vp-lights" title="תאורה">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+        </div>
+        <div id="model-info" class="model-info-badge">
+          <span id="info-verts">—</span> vert
+          <span class="divider">|</span>
+          <span id="info-faces">—</span> face
+          <span class="divider">|</span>
+          <span id="info-dims">—</span>
+        </div>
+        <div class="vp-tools">
+          <select id="env-select" class="styled-select mini">
+            <option value="studio">Studio</option>
+            <option value="outdoor">Outdoor</option>
+            <option value="dark">Dark Neon</option>
+            <option value="warm">Warm</option>
+          </select>
+        </div>
+      </div>
+
+      <canvas id="three-canvas"></canvas>
+
+      <!-- Center empty state -->
+      <div id="viewport-empty" class="viewport-empty">
+        <div class="empty-glow"></div>
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <p>אין מודל טעון</p>
+        <small>צור מודל חדש, העלה קיים, או מזג שניים</small>
+      </div>
+
+      <!-- Generation progress overlay -->
+      <div id="generation-overlay" class="gen-overlay hidden">
+        <div class="gen-spinner">
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring delay1"></div>
+          <div class="spinner-ring delay2"></div>
+        </div>
+        <p id="gen-status-text">מייצר מודל 3D...</p>
+        <div class="gen-progress">
+          <div id="gen-progress-bar" class="gen-bar"></div>
+        </div>
+      </div>
+
+      <!-- Print split result overlay -->
+      <div id="print-result-panel" class="print-result hidden">
+        <div id="print-result-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <!-- Three.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/loaders/PLYLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/exporters/GLTFExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/exporters/STLExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.167.0/examples/js/exporters/OBJExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <!-- App scripts -->
+  <script src="/js/viewport.js"></script>
+  <script src="/js/loaders.js"></script>
+  <script src="/js/generator.js"></script>
+  <script src="/js/print-splitter.js"></script>
+  <script src="/js/exporter.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
