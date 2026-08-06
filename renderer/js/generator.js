@@ -79,7 +79,7 @@ window.VoxelGenerator = (function() {
       formData.append('mode', mode);
       if (prompt) formData.append('prompt', prompt);
       if (images) {
-        images.forEach((img, i) => formData.append(`image_${i}`, img));
+        Array.from(images).forEach((img, i) => formData.append(`image_${i}`, img));
       }
 
       let result;
