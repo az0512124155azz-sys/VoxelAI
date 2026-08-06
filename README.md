@@ -1,7 +1,9 @@
 # VoxelAI Studio
 
 <div align="center">
-  <img src="assets/banner.png" alt="VoxelAI Studio" width="800" />
+  <img src="renderer/assets/logo.jpg" alt="VoxelAI Studio Logo" width="220" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(124,58,237,0.3);" />
+  
+  # 🚀 VoxelAI Studio
   
   **AI-powered 3D modeling studio — runs locally on your computer**
   
