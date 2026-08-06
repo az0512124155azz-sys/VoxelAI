@@ -1,9 +1,12 @@
 {
   "name": "voxelai-studio",
   "version": "1.0.0",
-  "description": "AI-powered 3D modeling studio — image, text, and 3D model to 3D generation, editing and 3D print export",
+  "description": "AI-powered 3D modeling studio \u2014 image, text, and 3D model to 3D generation, editing and 3D print export",
   "main": "main.js",
-  "author": "VoxelAI Studio",
+  "author": {
+    "name": "VoxelAI Studio",
+    "email": "contact@voxelai.studio"
+  },
   "license": "MIT",
   "private": false,
   "scripts": {
@@ -30,7 +33,7 @@
   "build": {
     "appId": "com.voxelai.studio",
     "productName": "VoxelAI Studio",
-    "copyright": "Copyright © 2026 VoxelAI Studio",
+    "copyright": "Copyright \u00a9 2026 VoxelAI Studio",
     "icon": "assets/icon",
     "files": [
       "main.js",
@@ -45,27 +48,66 @@
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "ia32"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/icon.ico"
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.graphics-design"
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] },
-        { "target": "rpm", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/icon.png",
-      "category": "Graphics"
+      "category": "Graphics",
+      "maintainer": "VoxelAI Studio <contact@voxelai.studio>"
     },
     "nsis": {
       "oneClick": false,
@@ -78,5 +120,6 @@
       "title": "VoxelAI Studio",
       "backgroundColor": "#0a0a1a"
     }
-  }
+  },
+  "homepage": "https://github.com/az0512124155azz-sys/VoxelAI"
 }
