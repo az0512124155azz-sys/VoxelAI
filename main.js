@@ -9,6 +9,25 @@ const cors = require('cors');
 let mainWindow;
 const isDev = process.argv.includes('--dev');
 
+// ─── Single instance lock ──────────────────────────────────────────────────────
+// Prevents a second launch of the app from trying to bind the API server to the
+// same port (127.0.0.1:3791) as an already-running instance, which previously
+// crashed the app with an unhandled "EADDRINUSE" exception. Instead, the second
+// launch quits immediately and focuses the already-open window.
+if (!app.requestSingleInstanceLock()) {
+  // Another instance is already running — quit this one immediately,
+  // before it ever tries to bind the API server's port.
+  app.quit();
+  return;
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 // ─── Express API server (local backend) ───────────────────────────────────────
 const apiApp = express();
 apiApp.use(cors());
@@ -150,6 +169,22 @@ function convertModelFormat(modelData, format) {
 
 // ─── Start API server ──────────────────────────────────────────────────────────
 const server = http.createServer(apiApp);
+
+// Handle the case where the port is already taken (e.g. by a leftover process)
+// instead of letting Node throw an unhandled exception and crash the app.
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    dialog.showErrorBox(
+      'VoxelAI Studio',
+      'VoxelAI Studio is already running (or another app is using port 3791).\n' +
+      'Please close any other running copy of VoxelAI Studio and try again.'
+    );
+  } else {
+    dialog.showErrorBox('VoxelAI Studio — Server Error', err.message);
+  }
+  app.quit();
+});
+
 server.listen(3791, '127.0.0.1', () => {
   if (isDev) console.log('VoxelAI API server running on http://127.0.0.1:3791');
 });
