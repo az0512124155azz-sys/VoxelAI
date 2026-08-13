@@ -5,11 +5,6 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g. v1.0.0)'
-        required: true
-        default: 'v1.0.0'
 
 jobs:
   build-windows:
@@ -17,56 +12,99 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      - name: Build Windows installer
+
+      - name: Convert icon to ICO
+        shell: pwsh
+        run: |
+          if (!(Test-Path "assets/icon.ico")) {
+            Copy-Item "assets/icon.png" "assets/icon.ico"
+          }
+
+      - name: Build Windows NSIS Installer + Portable EXE
         run: npm run build:win -- --publish never
-      - name: Upload Windows artifacts
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          WIN_CSC_LINK: ""
+
+      - name: Upload Windows EXE artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-builds
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
 
   build-macos:
     name: 🍎 macOS Build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      - name: Build macOS DMG
+
+      - name: Prepare macOS icon
+        run: |
+          mkdir -p assets
+          if [ ! -f "assets/icon.icns" ]; then
+            # Create ICNS from PNG using sips
+            mkdir -p assets/icon.iconset
+            cp assets/icon.png assets/icon.iconset/icon_512x512.png
+            sips -z 256 256 assets/icon.png --out assets/icon.iconset/icon_256x256.png 2>/dev/null || true
+            sips -z 128 128 assets/icon.png --out assets/icon.iconset/icon_128x128.png 2>/dev/null || true
+            sips -z 64 64 assets/icon.png --out assets/icon.iconset/icon_64x64.png 2>/dev/null || true
+            sips -z 32 32 assets/icon.png --out assets/icon.iconset/icon_32x32.png 2>/dev/null || true
+            sips -z 16 16 assets/icon.png --out assets/icon.iconset/icon_16x16.png 2>/dev/null || true
+            iconutil -c icns assets/icon.iconset -o assets/icon.icns 2>/dev/null || cp assets/icon.png assets/icon.icns
+          fi
+
+      - name: Build macOS DMG (Intel + Apple Silicon)
         run: npm run build:mac -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-builds
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/latest-mac.yml
 
   build-linux:
     name: 🐧 Linux Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      - name: Install Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+
+      - name: Install Linux system dependencies
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot dpkg
+
       - name: Install Node dependencies
         run: npm ci
-      - name: Build Linux packages
+
+      - name: Build Linux packages (AppImage + DEB + RPM)
         run: npm run build:linux -- --publish never
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -75,54 +113,67 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.rpm
+            dist/latest-linux.yml
 
   release:
-    name: 🚀 Create Release
+    name: 🚀 Create GitHub Release
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Determine release tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "name=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
+
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+
+      - name: List artifacts
+        run: find release-assets -type f | sort
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.name }}
+          tag_name: ${{ github.ref_name }}
+          name: "🚀 VoxelAI Studio ${{ github.ref_name }}"
           files: release-assets/**/*
           body: |
-            ## 🚀 VoxelAI Studio Release ${{ steps.tag.outputs.name }}
+            ## 🚀 VoxelAI Studio ${{ github.ref_name }}
 
-            ### Download for your platform:
-            | Platform | File |
-            |---|---|
-            | 🪟 Windows | `VoxelAI-Studio-Setup-*.exe` |
-            | 🍎 macOS Intel | `VoxelAI-Studio-*-x64.dmg` |
-            | 🍎 macOS Apple Silicon | `VoxelAI-Studio-*-arm64.dmg` |
-            | 🐧 Linux AppImage | `VoxelAI-Studio-*.AppImage` |
-            | 🐧 Linux Debian | `voxelai-studio_*.deb` |
-            | 🐧 Linux RPM | `voxelai-studio-*.rpm` |
+            AI-powered 3D modeling studio — runs locally on your computer.
 
-            ### What's new:
-            - See [CHANGELOG.md](CHANGELOG.md)
+            ---
 
-            ### Quick Start:
-            1. Download the installer for your OS
-            2. Install and launch VoxelAI Studio
-            3. Optionally set up a local AI engine for real 3D generation
-          generate_release_notes: true
+            ### 📥 Download for your platform:
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | 🪟 **Windows 64-bit** | `VoxelAI-Studio-Setup-*-x64.exe` | Installer with uninstaller |
+            | 🪟 **Windows 32-bit** | `VoxelAI-Studio-Setup-*-ia32.exe` | Older PCs |
+            | 🪟 **Windows Portable** | `VoxelAI-Studio-*-Portable.exe` | No installation needed |
+            | 🍎 **macOS Intel** | `VoxelAI-Studio-*-x64.dmg` | Intel Mac |
+            | 🍎 **macOS Apple Silicon** | `VoxelAI-Studio-*-arm64.dmg` | M1/M2/M3 Mac |
+            | 🐧 **Linux AppImage** | `VoxelAI-Studio-*.AppImage` | Universal Linux |
+            | 🐧 **Linux Debian/Ubuntu** | `voxelai-studio_*.deb` | Debian-based distros |
+            | 🐧 **Linux RPM** | `voxelai-studio-*.rpm` | Fedora/RHEL/CentOS |
+
+            ---
+
+            ### ✨ Features:
+            - 🎨 **5 AI Generation Modes**: Single image, multiple images, image+text, multi+text, text-only
+            - 🛠️ **AI Model Editing**: Upload any 3D file and describe changes in natural language
+            - 🔀 **3D Blend/Fusion**: Merge two 3D models with adjustable ratio
+            - 👤 **3D Caricature Studio**: Turn your photos into 3D avatars (8 styles)
+            - 🖨️ **Smart Print Splitter**: Auto-detects bed size, smart cuts with snap-fit pins
+            - 📦 **15+ Export Formats**: STL, 3MF, OBJ, PLY, GLB, GLTF, FBX, DAE, USDZ, OFF, WRL, DXF, XYZ, STEP
+            - ⚙️ **Settings Panel**: History log + Trellis 2.0 API (NVIDIA/Microsoft) integration
+
+            ### 🔧 Quick Start:
+            1. Download the installer for your OS and install it
+            2. Launch **VoxelAI Studio**
+            3. Optionally connect a local AI engine (Shap-E, InstantMesh) or enable **Trellis 2.0 API** in Settings
+          generate_release_notes: false
           draft: false
           prerelease: false
         env:
