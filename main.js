@@ -105,6 +105,25 @@ apiApp.post('/api/export', express.json(), async (req, res) => {
   }
 });
 
+// Save model to history folder
+apiApp.post('/api/save-history-model', express.json(), (req, res) => {
+  const { id, modelData } = req.body;
+  if (!modelData) return res.status(400).json({ error: 'No model data' });
+  try {
+    const historyDir = path.join(__dirname, 'renderer', 'history_files');
+    if (!fs.existsSync(historyDir)) {
+      fs.mkdirSync(historyDir, { recursive: true });
+    }
+    const filename = `model_${id}.glb`;
+    const filePath = path.join(historyDir, filename);
+    const buf = Buffer.from(modelData, 'base64');
+    fs.writeFileSync(filePath, buf);
+    res.json({ success: true, url: `/history_files/${filename}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── AI Generation Engine (mock/bridge) ────────────────────────────────────────
 async function generate3DModel({ mode, prompt, images }) {
   // Try local endpoints in order: Tripo3D local, Shap-E, InstantMesh, Ollama
@@ -241,6 +260,10 @@ ipcMain.handle('dialog:save-file', async (_, { defaultName, filters }) => {
 
 ipcMain.handle('fs:write-file', async (_, { filePath, data }) => {
   try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     const buf = Buffer.from(data, 'base64');
     fs.writeFileSync(filePath, buf);
     return { success: true };

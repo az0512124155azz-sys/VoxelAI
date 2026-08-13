@@ -83,20 +83,52 @@ window.VoxelGenerator = (function() {
       }
 
       let result;
-      try {
-        const resp = await fetch('/api/generate-3d', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode,
-            prompt,
-            images: images ? await imagesToBase64Array(images) : []
-          }),
-          signal: AbortSignal.timeout(60000)
-        });
-        result = await resp.json();
-      } catch (_) {
-        result = { offline: true, mode };
+      const trellisEnabled = localStorage.getItem('trellis_enabled') === 'true';
+      const trellisKey = localStorage.getItem('trellis_api_key');
+      const trellisEndpoint = localStorage.getItem('trellis_endpoint') || 'https://jeffreyxiang-trellis.hf.space/api/predict';
+
+      if (trellisEnabled && trellisKey) {
+        text.textContent = 'מתחבר ל-Trellis 2.0 API...';
+        try {
+          const base64Images = images ? await imagesToBase64Array(images) : [];
+          const resp = await fetch(trellisEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${trellisKey}`
+            },
+            body: JSON.stringify({
+              mode,
+              prompt,
+              images: base64Images
+            }),
+            signal: AbortSignal.timeout(120000)
+          });
+          if (resp.ok) {
+            result = await resp.json();
+          } else {
+            throw new Error(`שרת Trellis השיב בשגיאה: ${resp.status} ${resp.statusText}`);
+          }
+        } catch (err) {
+          showToast('שגיאה ב-Trellis API: ' + err.message, 'error');
+          result = { offline: true, mode };
+        }
+      } else {
+        try {
+          const resp = await fetch('/api/generate-3d', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode,
+              prompt,
+              images: images ? await imagesToBase64Array(images) : []
+            }),
+            signal: AbortSignal.timeout(60000)
+          });
+          result = await resp.json();
+        } catch (_) {
+          result = { offline: true, mode };
+        }
       }
 
       bar.style.width = '100%';
@@ -109,6 +141,12 @@ window.VoxelGenerator = (function() {
         );
         window.VoxelViewport.loadModel(mesh);
         showToast('מצב לא מקוון — מוצג מודל דמה. חבר AI מקומי לתוצאות אמיתיות.', 'info');
+        if (window.addHistoryItem) {
+          window.addHistoryItem({
+            type: 'create',
+            description: prompt ? `יצירת מודל (דמה): "${prompt}"` : `יצירת מודל (דמה) ממצב ${mode}`
+          });
+        }
         return { success: true, offline: true };
       }
 
@@ -116,12 +154,24 @@ window.VoxelGenerator = (function() {
         const obj = await window.VoxelLoaders.loadFromBase64(result.glbData, 'model.glb');
         window.VoxelViewport.loadModel(obj);
         showToast('מודל נוצר בהצלחה!', 'success');
+        if (window.addHistoryItem) {
+          window.addHistoryItem({
+            type: 'create',
+            description: prompt ? `יצירת מודל AI: "${prompt}"` : `יצירת מודל AI ממצב ${mode}`
+          });
+        }
         return { success: true };
       }
 
       // Fallback placeholder
       window.VoxelViewport.loadModel(window.VoxelViewport.createPlaceholderMesh());
       showToast('AI הפיק תגובה — מוצג מודל דמה', 'info');
+      if (window.addHistoryItem) {
+        window.addHistoryItem({
+          type: 'create',
+          description: prompt ? `יצירת מודל (דמה): "${prompt}"` : `יצירת מודל (דמה) ממצב ${mode}`
+        });
+      }
       return { success: true, offline: true };
 
     } catch (err) {
@@ -159,6 +209,12 @@ window.VoxelGenerator = (function() {
     });
     window.VoxelViewport.loadModel(mesh);
     showToast(`קריקטורה ${style} נוצרה! (מצב דמה — חבר AI לתוצאות מלאות)`, 'info');
+    if (window.addHistoryItem) {
+      window.addHistoryItem({
+        type: 'avatar',
+        description: `קריקטורה בסגנון ${style} (${subject}) ${extras ? ' - ' + extras : ''}`
+      });
+    }
     return { success: true };
   }
 
@@ -214,6 +270,12 @@ window.VoxelGenerator = (function() {
     hideGenerationOverlay();
 
     showToast('שינויים הוחלו (מצב דמה — AI עריכה מלאה דורש חיבור)', 'info');
+    if (window.addHistoryItem) {
+      window.addHistoryItem({
+        type: 'edit',
+        description: `עריכה בסגנון ${editType} בעוצמה ${strength}% ${prompt ? ' - ' + prompt : ''}`
+      });
+    }
     return { success: true };
   }
 
@@ -257,6 +319,12 @@ window.VoxelGenerator = (function() {
 
     window.VoxelViewport.loadModel(merged);
     showToast('מיזוג הושלם! (מצב דמה — AI מיזוג מלא דורש חיבור)', 'info');
+    if (window.addHistoryItem) {
+      window.addHistoryItem({
+        type: 'blend',
+        description: `מיזוג מודלים ביחס ${ratio}/${100-ratio} ${prompt ? ' - ' + prompt : ''}`
+      });
+    }
     return { success: true };
   }
 
